@@ -431,8 +431,8 @@ static void exynos_pcie_assert_phy_reset(struct pcie_port *pp)
 		writel(0x11, phy_base + 0x03*4);
 
 		/* band gap reference on */
-		//	writel(0x0, phy_base + 0x20*4);
-		//	writel(0x0, phy_base + 0x4b*4);
+		writel(0x0, phy_base + 0x20*4);
+		writel(0x0, phy_base + 0x4b*4);
 
 		/* jitter tunning */
 		writel(0x34, phy_base + 0x04*4);
@@ -1231,8 +1231,11 @@ static int exynos_pcie_resume_noirq(struct device *dev)
 	writel(readl(g_pcie->gpio_base + 0x8) | (0x3 << 12), g_pcie->gpio_base + 0x8);
 
 	gpio_set_value(g_pcie->perst_gpio, 1);
-	msleep(80);
 	exynos_pcie_host_init(&g_pcie->pp);
+
+	/* setup ATU for cfg/mem outbound */
+	dw_pcie_prog_viewport_cfg0(&g_pcie->pp, 0x1000000);
+	dw_pcie_prog_viewport_mem_outbound(&g_pcie->pp);
 
 	/* L1.2 ASPM enable */
 	dw_pcie_config_l1ss(&g_pcie->pp);
