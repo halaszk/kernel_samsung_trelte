@@ -244,9 +244,15 @@ HOSTCXX      = g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89
 HOSTCXXFLAGS = -O2
 
+ifneq ($(CC),)
 ifeq ($(shell $(HOSTCC) -v 2>&1 | grep -c "clang version"), 1)
+COMPILER := clang
 HOSTCFLAGS  += -Wno-unused-value -Wno-unused-parameter \
 		-Wno-missing-field-initializers
+else
+COMPILER := gcc
+endif
+export COMPILER
 endif
 
 # Decide whether to build built-in, modular, or both.
