@@ -96,11 +96,10 @@ EXPORT_SYMBOL(strncasecmp);
 #undef strcpy
 char *strcpy(char *dest, const char *src)
 {
-	char *tmp = dest;
+	const size_t length = strlen(src);
 
-	while ((*dest++ = *src++) != '\0')
-		/* nothing */;
-	return tmp;
+	memcpy(dest, src, length+1);
+	return dest;
 }
 EXPORT_SYMBOL(strcpy);
 #endif
@@ -121,13 +120,13 @@ EXPORT_SYMBOL(strcpy);
  */
 char *strncpy(char *dest, const char *src, size_t count)
 {
-	char *tmp = dest;
+	const size_t srclen = strnlen(src, count);
 
-	while (count) {
-		if ((*tmp = *src) != 0)
-			src++;
-		tmp++;
-		count--;
+	if (srclen < count) {
+		memcpy(dest, src, srclen);
+		memset(dest+srclen, 0, count-srclen);
+	} else {
+		memcpy(dest, src, count);
 	}
 	return dest;
 }
@@ -148,14 +147,15 @@ EXPORT_SYMBOL(strncpy);
  */
 size_t strlcpy(char *dest, const char *src, size_t size)
 {
-	size_t ret = strlen(src);
+	const size_t srclen = strlen(src);
 
-	if (size) {
-		size_t len = (ret >= size) ? size - 1 : ret;
-		memcpy(dest, src, len);
-		dest[len] = '\0';
+	if (srclen < size) {
+		memcpy(dest, src, srclen+1);
+	} else if (size != 0) {
+		memcpy(dest, src, size-1);
+		dest[size-1] = '\0';
 	}
-	return ret;
+	return srclen;
 }
 EXPORT_SYMBOL(strlcpy);
 #endif
@@ -169,13 +169,11 @@ EXPORT_SYMBOL(strlcpy);
 #undef strcat
 char *strcat(char *dest, const char *src)
 {
-	char *tmp = dest;
+	const size_t destlen = strlen(dest);
+	const size_t srclen = strlen(src);
 
-	while (*dest)
-		dest++;
-	while ((*dest++ = *src++) != '\0')
-		;
-	return tmp;
+	memcpy(dest+destlen, src, srclen+1);
+	return dest;
 }
 EXPORT_SYMBOL(strcat);
 #endif
@@ -192,19 +190,13 @@ EXPORT_SYMBOL(strcat);
  */
 char *strncat(char *dest, const char *src, size_t count)
 {
-	char *tmp = dest;
+	const size_t destlen = strlen(dest);
+	const size_t srclen = strnlen(src, count);
 
-	if (count) {
-		while (*dest)
-			dest++;
-		while ((*dest++ = *src++) != 0) {
-			if (--count == 0) {
-				*dest = '\0';
-				break;
-			}
-		}
-	}
-	return tmp;
+	const size_t cpylen = srclen < count ? srclen : count;
+	memcpy(dest+destlen, src, cpylen);
+	dest[destlen+cpylen] = '\0';
+	return dest;
 }
 EXPORT_SYMBOL(strncat);
 #endif
@@ -218,20 +210,18 @@ EXPORT_SYMBOL(strncat);
  */
 size_t strlcat(char *dest, const char *src, size_t count)
 {
-	size_t dsize = strlen(dest);
-	size_t len = strlen(src);
-	size_t res = dsize + len;
+	const size_t destlen = strlen(dest);
+	const size_t srclen = strnlen(dest, count);
 
-	/* This would be a bug */
-	BUG_ON(dsize >= count);
-
-	dest += dsize;
-	count -= dsize;
-	if (len >= count)
-		len = count-1;
-	memcpy(dest, src, len);
-	dest[len] = 0;
-	return res;
+	if (destlen == count)
+		return count+srclen;
+	if (srclen < count-destlen) {
+		memcpy(dest+destlen, src, srclen+1);
+	} else {
+		memcpy(dest+destlen, src, count-destlen-1);
+		dest[count-1] = '\0';
+	}
+	return destlen+srclen;
 }
 EXPORT_SYMBOL(strlcat);
 #endif
